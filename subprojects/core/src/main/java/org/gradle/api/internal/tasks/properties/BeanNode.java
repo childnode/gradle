@@ -19,16 +19,22 @@ package org.gradle.api.internal.tasks.properties;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
+import org.gradle.api.Named;
+import org.gradle.api.NamedDomainObjectCollection;
+import org.gradle.api.Namer;
 
 import javax.annotation.Nullable;
 import java.util.Iterator;
 
 public class BeanNode extends AbstractPropertyNode<BeanNode> {
     private final Object bean;
+    private final Namer<Object> namer;
 
     public BeanNode(@Nullable String propertyName, Object bean) {
         super(propertyName, Preconditions.checkNotNull(bean, "Null is not allowed as nested property '" + propertyName + "'").getClass());
         this.bean = bean;
+        //noinspection unchecked
+        this.namer = bean instanceof NamedDomainObjectCollection<?> ? ((NamedDomainObjectCollection) bean).getNamer() : null;
     }
 
     public Object getBean() {
@@ -42,8 +48,19 @@ public class BeanNode extends AbstractPropertyNode<BeanNode> {
 
             @Override
             public BeanNode apply(@Nullable Object input) {
-                String childPropertyName = getQualifiedPropertyName("$" + count++);
-                return new BeanNode(childPropertyName, Preconditions.checkNotNull(input, "Null is not allowed as nested property '" + childPropertyName + "'"));
+                String childPropertyName = getQualifiedPropertyName(determinePropertyName(input));
+                Object bean = Preconditions.checkNotNull(input, "Null is not allowed as nested property '" + childPropertyName + "'");
+                return new BeanNode(childPropertyName, bean);
+            }
+
+            private String determinePropertyName(@Nullable Object input) {
+                if (input != null && namer != null) {
+                    return namer.determineName(input);
+                }
+                if (input instanceof Named) {
+                    return ((Named) input).getName();
+                }
+                return "$" + count++;
             }
         });
     }

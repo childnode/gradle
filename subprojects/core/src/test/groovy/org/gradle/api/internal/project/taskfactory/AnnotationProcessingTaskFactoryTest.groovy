@@ -19,6 +19,8 @@ package org.gradle.api.internal.project.taskfactory
 import org.gradle.api.Action
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
+import org.gradle.api.NamedDomainObjectCollection
+import org.gradle.api.Namer
 import org.gradle.api.internal.AbstractTask
 import org.gradle.api.internal.ClassGenerator
 import org.gradle.api.internal.TaskInternal
@@ -564,14 +566,37 @@ class AnnotationProcessingTaskFactoryTest extends AbstractProjectBuilderSpec {
         inputProperties(task)[prop] == expected
 
         where:
-        type                                      | prop              | value        | expected
-        TaskWithNestedBean                        | "bean.class"      | [null]       | Bean.class
-        TaskWithNestedIterable                    | "beans.\$0.class" | [null]       | Bean.class
-        TaskWithNestedBeanWithPrivateClass        | "bean.class"      | [null, null] | Bean2.class
-        TaskWithOptionalNestedBean                | "bean.class"      | [null]       | null
-        TaskWithOptionalNestedBeanWithPrivateType | "bean.class"      | null         | null
-        TaskWithInput                             | "inputValue"      | ["value"]    | "value"
-        TaskWithBooleanInput                      | "inputValue"      | [true]       | true           // https://issues.gradle.org/Browse/GRADLE-2815
+        type                                      | prop               | value                            | expected
+        TaskWithNestedBean                        | "bean.class"       | [null]                           | Bean.class
+        TaskWithNestedIterable                    | "beans.\$0.class"  | [new Bean()]                     | Bean.class
+        TaskWithNestedIterable                    | "beans.name.value" | [new NamedBean("name", "value")] | "value"
+        TaskWithNestedBeanWithPrivateClass        | "bean.class"       | [null, null]                     | Bean2.class
+        TaskWithOptionalNestedBean                | "bean.class"       | [null]                           | null
+        TaskWithOptionalNestedBeanWithPrivateType | "bean.class"       | null                             | null
+        TaskWithInput                             | "inputValue"       | ["value"]                        | "value"
+        TaskWithBooleanInput                      | "inputValue"       | [true]                           | true           // https://issues.gradle.org/Browse/GRADLE-2815
+    }
+
+    def "registers input property for named domain object collection"() {
+        given:
+        def domainObjectCollection = Mock(NamedDomainObjectCollection.class)
+        def namer = Mock(Namer)
+        TaskWithNestedNamedDomainObjectCollection task = expectTaskCreated(TaskWithNestedNamedDomainObjectCollection)
+        task.collection = domainObjectCollection
+        def bean1 = new BeanWithInput("value1")
+        def bean2 = new BeanWithInput("value2")
+
+        when:
+        def inputs = inputProperties(task)
+
+        then:
+        1 * domainObjectCollection.iterator() >> [bean1, bean2].iterator()
+        1 * domainObjectCollection.getNamer() >> namer
+        1 * namer.determineName(bean1) >> "bean1"
+        1 * namer.determineName(bean2) >> "bean2"
+        0 * _
+        inputs.keySet() == ['bean1', 'bean2'].collectMany { ["beans.${it}.class", "beans.${it}.input"]*.toString() } as Set
+
     }
 
     @Unroll
@@ -608,7 +633,7 @@ class AnnotationProcessingTaskFactoryTest extends AbstractProjectBuilderSpec {
         TaskWithOptionalOutputDir                 | null                           | []                                              | []                      | []
         TaskWithOptionalOutputDirs                | null                           | []                                              | []                      | []
         TaskWithNestedBean                        | [null]                         | ["bean.class"]                                  | ["bean.inputFile"]      | []
-        TaskWithNestedIterable                    | [null]                         | ["beans.\$0.class"]                             | ["beans.\$0.inputFile"] | []
+        TaskWithNestedIterable                    | [new Bean()]                   | ["beans.\$0.class"]                             | ["beans.\$0.inputFile"] | []
         TaskWithNestedBeanWithPrivateClass        | [null, null]                   | ["bean.class"]                                  | ["bean.inputFile"]      | []
         TaskWithOptionalNestedBean                | [null]                         | []                                              | []                      | []
         TaskWithOptionalNestedBean                | [new Bean()]                   | ["bean.class"]                                  | ["bean.inputFile"]      | []
