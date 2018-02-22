@@ -43,6 +43,9 @@ public interface TaskInternal extends Task, Configurable<Task> {
     List<ContextAwareTaskAction> getTaskActions();
 
     @Internal
+    boolean hasTaskActions();
+
+    @Internal
     Spec<? super TaskInternal> getOnlyIf();
 
     @Deprecated
@@ -93,7 +96,7 @@ public interface TaskInternal extends Task, Configurable<Task> {
     void appendParallelSafeAction(Action<? super Task> action);
 
     @Internal
-    boolean isHasCustomActions();
+    boolean hasCustomActions();
 
     @Internal
     Path getIdentityPath();

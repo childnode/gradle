@@ -66,18 +66,18 @@ class AbstractTaskSpec extends AbstractProjectBuilderSpec {
         def task = createTask("task")
 
         then:
-        !task.hasCustomActions
+        !task.hasCustomActions()
 
         when:
         task.prependParallelSafeAction {}
 
         then:
-        !task.hasCustomActions
+        !task.hasCustomActions()
 
         when:
         task.doFirst {}
 
         then:
-        task.hasCustomActions
+        task.hasCustomActions()
     }
 }

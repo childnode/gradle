@@ -696,7 +696,7 @@ class AnnotationProcessingTaskFactoryTest extends AbstractProjectBuilderSpec {
         def task = expectTaskCreated(type, [null] as Object[])
 
         expect:
-        !task.hasCustomActions
+        !task.hasCustomActions()
 
         where:
         description                                         | type

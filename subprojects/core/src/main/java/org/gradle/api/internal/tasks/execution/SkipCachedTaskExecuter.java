@@ -66,7 +66,7 @@ public class SkipCachedTaskExecuter implements TaskExecuter {
 
         SortedSet<ResolvedTaskOutputFilePropertySpec> outputProperties = null;
         if (taskOutputCachingEnabled) {
-            if (task.isHasCustomActions()) {
+            if (task.hasCustomActions()) {
                 LOGGER.info("Custom actions are attached to {}.", task);
             }
             if (cacheKey.isValid()) {
